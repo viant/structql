@@ -25,7 +25,7 @@ As this library grow complex SQL transformation will be added, including indexes
 
 ```go
 
-SQL := "SELECT ProductID,Revenue FROM `/` WHERE Status = 2"
+SQL := "SELECT ID, Name FROM `/` WHERE Status = 2"
 query, err := structql.NewSelector(SQL, reflect.TypeOf(&Vendor{}), nil)
 if err != nil {
     log.Fatal(err)
