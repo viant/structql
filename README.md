@@ -29,12 +29,11 @@ SQL := "SELECT ProductID,Revenue FROM `/` WHERE Status = 2"
 query, err := structql.NewSelector(SQL, reflect.TypeOf(&Vendor{}), nil)
 if err != nil {
     log.Fatal(err)
+}	
+result, err := query.Select(vendors)
+if err != nil {
+    log.Fatal(err)
 }
-	
-    result, err := query.Select(vendors)
-    if err != nil {
-        log.Fatal(err)
-    }
 ```
 
 
@@ -45,12 +44,11 @@ SQL := "SELECT ProductID,Revenue FROM `/Products[Active=1]/Performance` WHERE Re
 query, err := structql.NewSelector(SQL, reflect.TypeOf(&Vendor{}), nil)
 if err != nil {
     log.Fatal(err)
+}	
+result, err := query.Select(vendors)
+if err != nil {
+    log.Fatal(err)
 }
-	
-    result, err := query.Select(vendors)
-    if err != nil {
-        log.Fatal(err)
-    }
 ```
 
 
