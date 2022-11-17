@@ -3,7 +3,6 @@ Basic functionality
 - Add support for non direct conversion (i.e int to time.Time, int to string etc ...)
 - Add support for time.Time in criterion 
 - Add support for conversion in criterion 
-- Add support formulti level output
 - Add IN/NOT IN translation to go expression
 - Add support for psedo column expr i.e FieldX + 10 / FieldZ
 
