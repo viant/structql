@@ -32,6 +32,7 @@ func example() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	
     result, err := query.Select(vendors)
     if err != nil {
         log.Fatal(err)
@@ -50,6 +51,7 @@ func example() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	
     result, err := query.Select(vendors)
     if err != nil {
         log.Fatal(err)
