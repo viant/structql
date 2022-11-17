@@ -26,6 +26,7 @@ As this library grow complex SQL transformation will be added, including indexes
 ```go
 
 func example() {
+	
 	SQL := "SELECT ProductID,Revenue FROM `/` WHERE Status = 2"
 	query, err := structql.NewSelector(SQL, reflect.TypeOf(&Vendor{}), nil)
 	if err != nil {
@@ -43,6 +44,7 @@ func example() {
 
 ```go
 func example() {
+	
 	SQL := "SELECT ProductID,Revenue FROM `/Products[Active=1]/Performance` WHERE Revenue > 100.0 "
 	query, err := structql.NewSelector(SQL, reflect.TypeOf(&Vendor{}), nil)
 	if err != nil {
