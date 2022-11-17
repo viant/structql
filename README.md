@@ -1,4 +1,4 @@
-# structql (SQL for Golang data structures)
+# structql (SQL for Go data structures)
 
 [![GoReportCard](https://goreportcard.com/badge/github.com/viant/structql)](https://goreportcard.com/report/github.com/viant/structql)
 [![GoDoc](https://godoc.org/github.com/viant/structql?status.svg)](https://godoc.org/github.com/viant/structql)
