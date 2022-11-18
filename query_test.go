@@ -256,7 +256,7 @@ func TestSelector_Select(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		sel, err := NewSelector(testCase.query, reflect.TypeOf(testCase.source), reflect.TypeOf(testCase.dest))
+		sel, err := NewQuery(testCase.query, reflect.TypeOf(testCase.source), reflect.TypeOf(testCase.dest))
 		if !assert.Nil(t, err, testCase.description) {
 			continue
 		}

@@ -117,7 +117,7 @@ func ExampleQuery_Select() {
 		ProductID int
 		Revenue   float64
 	}
-	query, err := structql.NewSelector(SQL, reflect.TypeOf(vendors), reflect.TypeOf(Query1Output{}))
+	query, err := structql.NewQuery(SQL, reflect.TypeOf(vendors), reflect.TypeOf(Query1Output{}))
 	if err != nil {
 		log.Fatal(err)
 	}

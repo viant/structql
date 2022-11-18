@@ -56,8 +56,8 @@ func unwrapStruct(p reflect.Type) reflect.Type {
 	return nil
 }
 
-//NewSelector returns a selector
-func NewSelector(query string, source, dest reflect.Type) (*Query, error) {
+//NewQuery returns a selector
+func NewQuery(query string, source, dest reflect.Type) (*Query, error) {
 	var err error
 	if unwrapStruct(source) == nil {
 		return nil, fmt.Errorf("invalid source type: %s", source.String())

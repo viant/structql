@@ -26,7 +26,7 @@ As this library grow complex SQL transformation will be added, including indexes
 ```go
 
 SQL := "SELECT ID, Name FROM `/` WHERE Status = 2"
-query, err := structql.NewSelector(SQL, reflect.TypeOf(&Vendor{}), nil)
+query, err := structql.NewQuery(SQL, reflect.TypeOf(&Vendor{}), nil)
 if err != nil {
     log.Fatal(err)
 }	
@@ -41,7 +41,7 @@ if err != nil {
 
 ```go
 SQL := "SELECT ProductID,Revenue FROM `/Products[Active=1]/Performance` WHERE Revenue > 100.0 "
-query, err := structql.NewSelector(SQL, reflect.TypeOf(&Vendor{}), nil)
+query, err := structql.NewQuery(SQL, reflect.TypeOf(&Vendor{}), nil)
 if err != nil {
     log.Fatal(err)
 }	
@@ -178,7 +178,7 @@ func ExampleQuery_Select() {
 		ProductID int
 		Revenue   float64
 	}
-	query, err := structql.NewSelector(SQL, reflect.TypeOf(vendors), reflect.TypeOf(Query1Output{}))
+	query, err := structql.NewQuery(SQL, reflect.TypeOf(vendors), reflect.TypeOf(Query1Output{}))
 	if err != nil {
 		log.Fatal(err)
 	}
