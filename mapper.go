@@ -3,6 +3,7 @@ package structql
 import (
 	"fmt"
 	"github.com/viant/sqlx/metadata/ast/expr"
+	"github.com/viant/sqlx/metadata/ast/parser"
 	"github.com/viant/sqlx/metadata/ast/query"
 	"github.com/viant/xunsafe"
 	"reflect"
@@ -13,28 +14,27 @@ import (
 type mapKind int
 
 const (
-	mapKindDirect = mapKind(iota)
-	mapKindCast
+	mapKindUnspecified = mapKind(iota)
+	mapKindDirectPrimitive
+	mapKindDirect
+	mapKindTranslate
 	mapKindExpr
 )
 
 type (
 	//Mapper represents struct mapper
 	Mapper struct {
-		fields []field
-		dest   reflect.Type
-	}
-
-	field struct {
-		mapKind
-		src  *xunsafe.Field
-		dest *xunsafe.Field
+		fields    []field
+		dest      reflect.Type
+		aggregate bool
+		groupBy   []string
 	}
 )
 
 //Map maps source to appender
 func (m *Mapper) Map(walker *Walker, source interface{}, appender *xunsafe.Appender) error {
-	return walker.mapNode(m, walker.root, source, appender)
+	ctx := NewContext(m, appender, m.aggregate)
+	return walker.mapNode(ctx, walker.root, source)
 }
 
 //MapStruct maps struct
@@ -61,9 +61,26 @@ func (m *Mapper) MapStruct(srcItemPtr unsafe.Pointer, destItemPtr unsafe.Pointer
 
 //Map map fields
 func (f *field) Map(src, dest unsafe.Pointer) {
-	//TODO analize kind
-	value := f.src.Interface(src)
-	f.dest.SetValue(dest, value)
+	f.copy(src, dest)
+
+}
+
+func (f *field) copy(src unsafe.Pointer, dest unsafe.Pointer) {
+	if f.mapKind == mapKindDirectPrimitive {
+		source := f.src.Interface(src)
+		f.dest.Set(dest, source)
+		return
+	}
+	if f.mapKind == mapKindDirect {
+		source := f.src.Interface(src)
+		f.dest.SetValue(dest, source)
+		return
+	}
+	f.translate(src, dest)
+}
+
+func (f *field) translate(source, dest unsafe.Pointer) {
+	f.cp(source, dest)
 }
 
 //NewMapper creates a mapper
@@ -80,17 +97,25 @@ func NewMapper(source reflect.Type, dest reflect.Type, sel *query.Select) (*Mapp
 		if item.Alias == "" {
 			item.Alias = fieldMap.src.Name
 		}
+		if fieldMap.aggregate {
+			ret.aggregate = fieldMap.aggregate
+		}
+
+		if err := mapDestField(dest, item, fieldMap); err != nil {
+			return nil, err
+		}
+
 		if !hasDest {
 			if fieldMap.src.Tag != "" {
 				tag := string(fieldMap.src.Tag)
 				//TODO detect case format and replace accordingly
-				tag = strings.ReplaceAll(tag, fieldMap.src.Name, item.Alias)
+				tag = strings.ReplaceAll(tag, fieldMap.dest.Name, item.Alias)
 				fieldMap.src.Tag = reflect.StructTag(tag)
 			}
-			destFields = append(destFields, reflect.StructField{Name: item.Alias, Type: fieldMap.src.Type, Tag: fieldMap.src.Tag, PkgPath: fieldMap.src.PkgPath()})
+			destFields = append(destFields, reflect.StructField{Name: fieldMap.dest.Name, Type: fieldMap.dest.Type, Tag: fieldMap.src.Tag, PkgPath: fieldMap.src.PkgPath()})
 			dest = reflect.StructOf(destFields)
 		}
-		if err := mapDestField(dest, item, fieldMap); err != nil {
+		if err := fieldMap.configure(); err != nil {
 			return nil, err
 		}
 	}
@@ -108,6 +133,26 @@ func mapSourceField(source reflect.Type, item *query.Item, fieldMap *field) erro
 		if fieldMap.src = xunsafe.FieldByName(source, actual.Name); fieldMap.src == nil {
 			return fmt.Errorf("failed to lookup source field: '%s' at %s", actual.Name, source.String())
 		}
+	case *expr.Call:
+		funName := parser.Stringify(actual.X)
+		switch strings.ToUpper(funName) {
+		case "ARRAY_AGG":
+			fieldMap.aggregate = true
+			args := actual.Args
+			if len(args) != 1 {
+				return fmt.Errorf("invalid ARRAY_AGG args count, %v, expected 1", len(args))
+			}
+			colName := parser.Stringify(actual.Args[0])
+			if fieldMap.src = xunsafe.FieldByName(source, colName); fieldMap.src == nil {
+				return fmt.Errorf("failed to lookup source field: '%s' at %s", colName, source.String())
+			}
+			destName := item.Alias
+			if item.Alias == "" {
+				destName = fieldMap.src.Name
+			}
+			fieldMap.dest = &xunsafe.Field{Name: destName, Type: reflect.SliceOf(fieldMap.src.Type)}
+		}
+
 	default:
 		return fmt.Errorf("mapping not supported yet: %T", actual)
 	}
@@ -115,6 +160,9 @@ func mapSourceField(source reflect.Type, item *query.Item, fieldMap *field) erro
 }
 
 func mapDestField(source reflect.Type, item *query.Item, fieldMap *field) error {
+	if fieldMap.dest != nil {
+		return nil
+	}
 	if fieldMap.dest = xunsafe.FieldByName(source, item.Alias); fieldMap.src == nil {
 		return fmt.Errorf("failed to lookup dest field: '%s' at %s", item.Alias, source.String())
 	}

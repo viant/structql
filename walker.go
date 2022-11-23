@@ -79,16 +79,16 @@ func (w *Walker) count(aNode *Node, value interface{}) int {
 	return result
 }
 
-func (w *Walker) mapNode(mapper *Mapper, aNode *Node, value interface{}, appender *xunsafe.Appender) error {
+func (w *Walker) mapNode(ctx *Context, aNode *Node, value interface{}) error {
 	if !aNode.When(value) {
 		return nil
 	}
 
 	srcPtr := xunsafe.AsPointer(value)
 	if aNode.IsLeaf {
-		destItem := appender.Add()
+		destItem := ctx.Next(value)
 		destItemPtr := xunsafe.AsPointer(destItem)
-		if err := mapper.MapStruct(srcPtr, destItemPtr); err != nil {
+		if err := ctx.mapper.MapStruct(srcPtr, destItemPtr); err != nil {
 			return err
 		}
 		return nil
@@ -97,12 +97,12 @@ func (w *Walker) mapNode(mapper *Mapper, aNode *Node, value interface{}, appende
 	switch aNode.kind {
 	case nodeKindObject:
 		srcItem = aNode.xField.Interface(srcPtr)
-		return w.mapNode(mapper, aNode.child, srcItem, appender)
+		return w.mapNode(ctx, aNode.child, srcItem)
 	case nodeKindArray:
 		sliceLen := aNode.xSlice.Len(srcPtr)
 		for i := 0; i < sliceLen; i++ {
 			item := aNode.xSlice.ValuePointerAt(srcPtr, i)
-			if err := w.mapNode(mapper, aNode.child, item, appender); err != nil {
+			if err := w.mapNode(ctx, aNode.child, item); err != nil {
 				return err
 			}
 		}

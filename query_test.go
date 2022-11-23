@@ -40,6 +40,32 @@ func TestSelector_Select(t *testing.T) {
 		dest        interface{}
 		expect      interface{}
 	}{
+
+		{
+			description: "query with dest ARRAY_AGG",
+			query:       "SELECT ARRAY_AGG(ID) AS IDs FROM `/` WHERE Active = true",
+			source: []*Record{
+				{
+					ID:       1,
+					Name:     "name 1",
+					Active:   true,
+					Comments: "comments 1",
+				},
+				{
+					ID:       2,
+					Name:     "name 2",
+					Active:   false,
+					Comments: "comments 2",
+				},
+				{
+					ID:       3,
+					Name:     "name 3",
+					Active:   true,
+					Comments: "comments 3",
+				},
+			},
+			expect: `[{"IDs":[1, 3]}]`,
+		},
 		{
 			description: "query with dest",
 			query:       "SELECT Name, Active FROM `/`",
@@ -255,7 +281,7 @@ func TestSelector_Select(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for _, testCase := range testCases[:1] {
 		sel, err := NewQuery(testCase.query, reflect.TypeOf(testCase.source), reflect.TypeOf(testCase.dest))
 		if !assert.Nil(t, err, testCase.description) {
 			continue
