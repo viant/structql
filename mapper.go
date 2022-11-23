@@ -101,10 +101,6 @@ func NewMapper(source reflect.Type, dest reflect.Type, sel *query.Select) (*Mapp
 			ret.aggregate = fieldMap.aggregate
 		}
 
-		if err := mapDestField(dest, item, fieldMap); err != nil {
-			return nil, err
-		}
-
 		if !hasDest {
 			if fieldMap.src.Tag != "" {
 				tag := string(fieldMap.src.Tag)
@@ -112,9 +108,18 @@ func NewMapper(source reflect.Type, dest reflect.Type, sel *query.Select) (*Mapp
 				tag = strings.ReplaceAll(tag, fieldMap.dest.Name, item.Alias)
 				fieldMap.src.Tag = reflect.StructTag(tag)
 			}
-			destFields = append(destFields, reflect.StructField{Name: fieldMap.dest.Name, Type: fieldMap.dest.Type, Tag: fieldMap.src.Tag, PkgPath: fieldMap.src.PkgPath()})
+			fieldName := item.Alias
+			fieldType := fieldMap.src.Type
+			if fieldMap.dest != nil {
+				fieldType = fieldMap.dest.Type
+			}
+			destFields = append(destFields, reflect.StructField{Name: fieldName, Type: fieldType, Tag: fieldMap.src.Tag, PkgPath: fieldMap.src.PkgPath()})
 			dest = reflect.StructOf(destFields)
 		}
+		if err := mapDestField(dest, item, fieldMap); err != nil {
+			return nil, err
+		}
+
 		if err := fieldMap.configure(); err != nil {
 			return nil, err
 		}
