@@ -102,13 +102,13 @@ func NewMapper(source reflect.Type, dest reflect.Type, sel *query.Select) (*Mapp
 		}
 
 		if !hasDest {
+			fieldName := item.Alias
 			if fieldMap.src.Tag != "" {
 				tag := string(fieldMap.src.Tag)
 				//TODO detect case format and replace accordingly
-				tag = strings.ReplaceAll(tag, fieldMap.dest.Name, item.Alias)
+				tag = strings.ReplaceAll(tag, fieldMap.src.Name, item.Alias)
 				fieldMap.src.Tag = reflect.StructTag(tag)
 			}
-			fieldName := item.Alias
 			fieldType := fieldMap.src.Type
 			if fieldMap.dest != nil {
 				fieldType = fieldMap.dest.Type

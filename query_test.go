@@ -3,6 +3,7 @@ package structql
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/viant/assertly"
+	"github.com/viant/structql/transform"
 	"github.com/viant/toolbox"
 	"reflect"
 	"testing"
@@ -39,6 +40,7 @@ func TestSelector_Select(t *testing.T) {
 		source      interface{}
 		dest        interface{}
 		expect      interface{}
+		IntsField   string
 	}{
 
 		{
@@ -65,6 +67,32 @@ func TestSelector_Select(t *testing.T) {
 				},
 			},
 			expect: `[{"IDs":[1, 3]}]`,
+		},
+		{
+			description: "query with dest ARRAY_AGG all",
+			query:       "SELECT ARRAY_AGG(ID) AS XInts FROM `/` ",
+			source: []*Record{
+				{
+					ID:       1,
+					Name:     "name 1",
+					Active:   true,
+					Comments: "comments 1",
+				},
+				{
+					ID:       2,
+					Name:     "name 2",
+					Active:   false,
+					Comments: "comments 2",
+				},
+				{
+					ID:       3,
+					Name:     "name 3",
+					Active:   true,
+					Comments: "comments 3",
+				},
+			},
+			IntsField: "XInts",
+			expect:    `[1,2, 3]`,
 		},
 		{
 			description: "query with dest",
@@ -290,6 +318,15 @@ func TestSelector_Select(t *testing.T) {
 		if !assert.Nil(t, err, testCase.description) {
 			continue
 		}
+
+		if testCase.IntsField != "" {
+			asInts, err := transform.AsInts(sel.Type(), testCase.IntsField)
+			if !assert.Nil(t, err, testCase.description) {
+				continue
+			}
+			dest = asInts(dest)
+		}
+
 		if !assertly.AssertValues(t, testCase.expect, dest, testCase.description) {
 			toolbox.DumpIndent(dest, true)
 		}
