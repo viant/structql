@@ -19,7 +19,7 @@ type Query struct {
 	node      *Node
 	mapper    *Mapper
 	walker    *Walker
-	Dest      reflect.Type
+	CompType  reflect.Type
 }
 
 //Type returns dest slice type
@@ -39,6 +39,23 @@ func (s *Query) Select(source interface{}) (interface{}, error) {
 		return nil, err
 	}
 	return destSlicePtr, nil
+}
+
+//First returns the first selection result
+func (s *Query) First(source interface{}) (interface{}, error) {
+	destSlicePtrValue := reflect.New(s.destSlice.Type)
+	sourceLen := s.walker.Count(source)
+	destSlicePtrValue.Elem().Set(reflect.MakeSlice(s.destSlice.Type, 0, sourceLen))
+	destSlicePtr := destSlicePtrValue.Interface()
+	destPtr := xunsafe.AsPointer(destSlicePtr)
+	appender := s.destSlice.Appender(destPtr)
+	if err := s.mapper.Map(s.walker, source, appender); err != nil {
+		return nil, err
+	}
+	if s.destSlice.Len(destPtr) == 0 {
+		return nil, nil
+	}
+	return s.destSlice.ValuePointerAt(destPtr, 0), nil
 }
 
 func unwrapStruct(p reflect.Type) reflect.Type {
@@ -79,9 +96,9 @@ func NewQuery(query string, source, dest reflect.Type) (*Query, error) {
 		return nil, err
 	}
 	ret.walker = NewWalker(ret.node)
-	ret.Dest = ret.mapper.dest
+	ret.CompType = ret.mapper.dest
 	if dest == nil {
-		dest = reflect.PtrTo(ret.Dest)
+		dest = reflect.PtrTo(ret.CompType)
 	}
 	if dest.Kind() != reflect.Slice {
 		dest = reflect.SliceOf(dest)
