@@ -2,9 +2,9 @@ package structql
 
 import (
 	"fmt"
-	"github.com/viant/sqlx/metadata/ast/expr"
-	"github.com/viant/sqlx/metadata/ast/parser"
-	"github.com/viant/sqlx/metadata/ast/query"
+	"github.com/viant/sqlparser"
+	"github.com/viant/sqlparser/expr"
+	"github.com/viant/sqlparser/query"
 	"github.com/viant/xunsafe"
 	"reflect"
 	"strings"
@@ -139,7 +139,7 @@ func mapSourceField(source reflect.Type, item *query.Item, fieldMap *field) erro
 			return fmt.Errorf("failed to lookup source field: '%s' at %s", actual.Name, source.String())
 		}
 	case *expr.Call:
-		funName := parser.Stringify(actual.X)
+		funName := sqlparser.Stringify(actual.X)
 		switch strings.ToUpper(funName) {
 		case "ARRAY_AGG":
 			fieldMap.aggregate = true
@@ -147,7 +147,7 @@ func mapSourceField(source reflect.Type, item *query.Item, fieldMap *field) erro
 			if len(args) != 1 {
 				return fmt.Errorf("invalid ARRAY_AGG args count, %v, expected 1", len(args))
 			}
-			colName := parser.Stringify(actual.Args[0])
+			colName := sqlparser.Stringify(actual.Args[0])
 			if fieldMap.src = xunsafe.FieldByName(source, colName); fieldMap.src == nil {
 				return fmt.Errorf("failed to lookup source field: '%s' at %s", colName, source.String())
 			}

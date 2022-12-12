@@ -2,8 +2,8 @@ package structql
 
 import (
 	"fmt"
-	"github.com/viant/sqlx/metadata/ast/parser"
-	"github.com/viant/sqlx/metadata/ast/query"
+	"github.com/viant/sqlparser"
+	"github.com/viant/sqlparser/query"
 	sparser "github.com/viant/structql/parser"
 	"github.com/viant/xunsafe"
 	"reflect"
@@ -80,13 +80,13 @@ func NewQuery(query string, source, dest reflect.Type) (*Query, error) {
 		return nil, fmt.Errorf("invalid source type: %s", source.String())
 	}
 	ret := &Query{query: query, source: source}
-	if ret.sel, err = parser.ParseQuery(query); err != nil {
-		return nil, err
+	if ret.sel, err = sqlparser.ParseQuery(query); err != nil {
+		return nil, fmt.Errorf("failed to parse %w, %v", err, query)
 	}
-	from := strings.Trim(parser.Stringify(ret.sel.From.X), "`")
+	from := strings.Trim(sqlparser.Stringify(ret.sel.From.X), "`")
 	sel, err := sparser.ParseSelector(from)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid from: %w, %v", err, from)
 	}
 	if ret.node, err = NewNode(source, sel); err != nil {
 		return nil, err

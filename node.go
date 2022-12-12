@@ -5,7 +5,7 @@ import (
 	"github.com/viant/igo"
 	"github.com/viant/igo/exec"
 	"github.com/viant/igo/exec/expr"
-	snode "github.com/viant/sqlx/metadata/ast/node"
+	snode "github.com/viant/sqlparser/node"
 	"github.com/viant/structql/node"
 	"github.com/viant/structql/parser"
 	"github.com/viant/xunsafe"

@@ -1,6 +1,6 @@
 package node
 
-import "github.com/viant/sqlx/metadata/ast/node"
+import "github.com/viant/sqlparser/node"
 
 //Selector represents a selector
 type Selector struct {

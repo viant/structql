@@ -1,6 +1,7 @@
 package structql
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/viant/assertly"
 	"github.com/viant/structql/transform"
@@ -43,6 +44,49 @@ func TestSelector_Select(t *testing.T) {
 		IntsField   string
 	}{
 
+		{
+			description: "query with criteria dynamic dest nested",
+			query:       "SELECT Name,Active FROM `/Records[Active = true]`",
+			source: []*Holder{
+				{
+
+					Records: []*Record{
+						{
+							ID:       1,
+							Name:     "name 100",
+							Active:   true,
+							Comments: "comments 1",
+						},
+						{
+							ID:       2,
+							Name:     "name 200",
+							Active:   false,
+							Comments: "comments 2",
+						},
+					},
+				},
+				{
+					Records: []*Record{
+						{
+							ID:       3,
+							Name:     "name 300",
+							Active:   true,
+							Comments: "comments 3",
+						},
+					},
+				},
+			},
+			expect: `[
+	{
+		"Name": "name 100",
+		"Active": true
+	},
+	{
+		"Name": "name 300",
+		"Active": true
+	}
+]`,
+		},
 		{
 			description: "query with dest ARRAY_AGG",
 			query:       "SELECT ARRAY_AGG(ID) AS IDs FROM `/` WHERE Active = true",
@@ -221,50 +265,6 @@ func TestSelector_Select(t *testing.T) {
 		},
 
 		{
-			description: "query with criteria dynamic dest nested",
-			query:       "SELECT Name,Active FROM `/Records[Active = true]",
-			source: []*Holder{
-				{
-
-					Records: []*Record{
-						{
-							ID:       1,
-							Name:     "name 100",
-							Active:   true,
-							Comments: "comments 1",
-						},
-						{
-							ID:       2,
-							Name:     "name 200",
-							Active:   false,
-							Comments: "comments 2",
-						},
-					},
-				},
-				{
-					Records: []*Record{
-						{
-							ID:       3,
-							Name:     "name 300",
-							Active:   true,
-							Comments: "comments 3",
-						},
-					},
-				},
-			},
-			expect: `[
-	{
-		"Name": "name 100",
-		"Active": true
-	},
-	{
-		"Name": "name 300",
-		"Active": true
-	}
-]`,
-		},
-
-		{
 			description: "query with WHERE criteria dynamic dest nested",
 			query:       "SELECT Name,Active FROM `/Records` WHERE Active = true",
 			source: []*Holder{
@@ -312,6 +312,7 @@ func TestSelector_Select(t *testing.T) {
 	for _, testCase := range testCases {
 		sel, err := NewQuery(testCase.query, reflect.TypeOf(testCase.source), reflect.TypeOf(testCase.dest))
 		if !assert.Nil(t, err, testCase.description) {
+			fmt.Printf("err: %v\n", err)
 			continue
 		}
 		dest, err := sel.Select(testCase.source)

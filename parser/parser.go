@@ -3,8 +3,8 @@ package parser
 import (
 	"fmt"
 	"github.com/viant/parsly"
-	"github.com/viant/sqlx/metadata/ast/expr"
-	"github.com/viant/sqlx/metadata/ast/parser"
+	"github.com/viant/sqlparser"
+	"github.com/viant/sqlparser/expr"
 	"github.com/viant/structql/node"
 	"github.com/yuin/gopher-lua/parse"
 	"strings"
@@ -62,5 +62,5 @@ outer:
 func ParseQualify(path string, cond []byte, offset int) (*expr.Qualify, error) {
 	cursor := parsly.NewCursor(path, cond, offset)
 	qualify := &expr.Qualify{}
-	return qualify, parser.ParseQualify(cursor, qualify)
+	return qualify, sqlparser.ParseQualify(cursor, qualify)
 }
