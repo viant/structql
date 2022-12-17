@@ -59,7 +59,12 @@ func (w *Walker) count(aNode *Node, value interface{}) int {
 	if !aNode.When(value) {
 		return 0
 	}
+
 	ptr := xunsafe.AsPointer(value)
+	if ptr == nil {
+		return 0
+	}
+
 	var result = 0
 	var item interface{}
 	if aNode.IsLeaf {
@@ -85,6 +90,10 @@ func (w *Walker) mapNode(ctx *Context, aNode *Node, value interface{}) error {
 	}
 
 	srcPtr := xunsafe.AsPointer(value)
+	if srcPtr == nil {
+		return nil
+	}
+
 	if aNode.IsLeaf {
 		destItem := ctx.Next(value)
 		destItemPtr := xunsafe.AsPointer(destItem)

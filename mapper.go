@@ -39,6 +39,10 @@ func (m *Mapper) Map(walker *Walker, source interface{}, appender *xunsafe.Appen
 
 //MapStruct maps struct
 func (m *Mapper) MapStruct(srcItemPtr unsafe.Pointer, destItemPtr unsafe.Pointer) error {
+	if srcItemPtr == nil || destItemPtr == nil {
+		return nil
+	}
+
 	switch len(m.fields) {
 	case 1:
 		m.fields[0].Map(srcItemPtr, destItemPtr)
