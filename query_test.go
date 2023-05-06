@@ -218,7 +218,7 @@ func TestSelector_Select(t *testing.T) {
 
 		{
 			description: "query with dynamic dest nested",
-			query:       "SELECT Name,Active FROM `/Records",
+			query:       "SELECT Name,Active FROM `/Records`",
 			source: []*Holder{
 				{
 
@@ -307,8 +307,62 @@ func TestSelector_Select(t *testing.T) {
 	}
 ]`,
 		},
+		{
+			description: "query *",
+			query:       "SELECT * FROM `/Records`",
+			source: []*Holder{
+				{
+
+					Records: []*Record{
+						{
+							ID:       1,
+							Name:     "name 100",
+							Active:   true,
+							Comments: "comments 1",
+						},
+						{
+							ID:       2,
+							Name:     "name 200",
+							Active:   false,
+							Comments: "comments 2",
+						},
+					},
+				},
+				{
+					Records: []*Record{
+						{
+							ID:       3,
+							Name:     "name 300",
+							Active:   true,
+							Comments: "comments 3",
+						},
+					},
+				},
+			},
+			expect: []*Record{
+				{
+					ID:       1,
+					Name:     "name 100",
+					Active:   true,
+					Comments: "comments 1",
+				},
+				{
+					ID:       2,
+					Name:     "name 200",
+					Active:   false,
+					Comments: "comments 2",
+				},
+				{
+					ID:       3,
+					Name:     "name 300",
+					Active:   true,
+					Comments: "comments 3",
+				},
+			},
+		},
 	}
 
+	//for _, testCase := range testCases[len(testCases)-1:] {
 	for _, testCase := range testCases {
 		sel, err := NewQuery(testCase.query, reflect.TypeOf(testCase.source), reflect.TypeOf(testCase.dest))
 		if !assert.Nil(t, err, testCase.description) {
