@@ -13,6 +13,7 @@ func (c *Context) Next(source interface{}) interface{} {
 	if !c.mapper.aggregate {
 		return c.appender.Add()
 	}
+
 	if len(c.group) == 0 {
 		if c.value == nil {
 			c.value = c.appender.Add()

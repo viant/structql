@@ -28,6 +28,7 @@ type (
 		dest      reflect.Type
 		aggregate bool
 		groupBy   []string
+		xType     *xunsafe.Type
 	}
 )
 
@@ -44,6 +45,8 @@ func (m *Mapper) MapStruct(srcItemPtr unsafe.Pointer, destItemPtr unsafe.Pointer
 	}
 
 	switch len(m.fields) {
+	case 0:
+		xunsafe.Copy(destItemPtr, srcItemPtr, int(m.dest.Size()))
 	case 1:
 		m.fields[0].Map(srcItemPtr, destItemPtr)
 		break
@@ -63,10 +66,14 @@ func (m *Mapper) MapStruct(srcItemPtr unsafe.Pointer, destItemPtr unsafe.Pointer
 	return nil
 }
 
+func (m *Mapper) setType(dest reflect.Type) {
+	m.dest = dest
+	m.xType = xunsafe.NewType(dest)
+}
+
 //Map map fields
 func (f *field) Map(src, dest unsafe.Pointer) {
 	f.copy(src, dest)
-
 }
 
 func (f *field) copy(src unsafe.Pointer, dest unsafe.Pointer) {
@@ -89,11 +96,20 @@ func (f *field) translate(source, dest unsafe.Pointer) {
 
 //NewMapper creates a mapper
 func NewMapper(source reflect.Type, dest reflect.Type, sel *query.Select) (*Mapper, error) {
-	ret := &Mapper{fields: make([]field, len(sel.List))}
+	ret := &Mapper{
+		fields: make([]field, 0, len(sel.List)),
+	}
+
+	if sel.List.IsStarExpr() {
+		ret.setType(source)
+		return ret, nil
+	}
+
 	hasDest := dest != nil
 	var destFields []reflect.StructField
 	for i := range sel.List {
 		item := sel.List[i]
+		ret.fields = append(ret.fields, field{})
 		fieldMap := &ret.fields[i]
 		if err := mapSourceField(source, item, fieldMap); err != nil {
 			return nil, err
@@ -128,7 +144,8 @@ func NewMapper(source reflect.Type, dest reflect.Type, sel *query.Select) (*Mapp
 			return nil, err
 		}
 	}
-	ret.dest = dest
+
+	ret.setType(dest)
 	return ret, nil
 }
 

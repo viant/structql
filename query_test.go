@@ -138,7 +138,6 @@ func TestSelector_Select(t *testing.T) {
 			IntsField: "XInts",
 			expect:    `[1,2, 3]`,
 		},
-
 		{
 			description: "query with dest",
 			query:       "SELECT Name, Active FROM `/`",
@@ -219,7 +218,7 @@ func TestSelector_Select(t *testing.T) {
 
 		{
 			description: "query with dynamic dest nested",
-			query:       "SELECT Name,Active FROM `/Records",
+			query:       "SELECT Name,Active FROM `/Records`",
 			source: []*Holder{
 				{
 
@@ -308,23 +307,62 @@ func TestSelector_Select(t *testing.T) {
 	}
 ]`,
 		},
-
 		{
-			description: "query with nexted dest ARRAY_AGG all",
-			query:       "SELECT ARRAY_AGG(ID) AS XInts FROM `/Records` ",
+			description: "query *",
+			query:       "SELECT * FROM `/Records`",
 			source: []*Holder{
 				{
-					ID: 123,
+
+					Records: []*Record{
+						{
+							ID:       1,
+							Name:     "name 100",
+							Active:   true,
+							Comments: "comments 1",
+						},
+						{
+							ID:       2,
+							Name:     "name 200",
+							Active:   false,
+							Comments: "comments 2",
+						},
+					},
 				},
 				{
-					ID: 324,
+					Records: []*Record{
+						{
+							ID:       3,
+							Name:     "name 300",
+							Active:   true,
+							Comments: "comments 3",
+						},
+					},
 				},
 			},
-			IntsField: "XInts",
-			expect:    ``,
+			expect: []*Record{
+				{
+					ID:       1,
+					Name:     "name 100",
+					Active:   true,
+					Comments: "comments 1",
+				},
+				{
+					ID:       2,
+					Name:     "name 200",
+					Active:   false,
+					Comments: "comments 2",
+				},
+				{
+					ID:       3,
+					Name:     "name 300",
+					Active:   true,
+					Comments: "comments 3",
+				},
+			},
 		},
 	}
 
+	//for _, testCase := range testCases[len(testCases)-1:] {
 	for _, testCase := range testCases {
 		sel, err := NewQuery(testCase.query, reflect.TypeOf(testCase.source), reflect.TypeOf(testCase.dest))
 		if !assert.Nil(t, err, testCase.description) {
@@ -335,6 +373,7 @@ func TestSelector_Select(t *testing.T) {
 		if !assert.Nil(t, err, testCase.description) {
 			continue
 		}
+
 		if testCase.IntsField != "" {
 			asInts, err := transform.AsInts(sel.Type(), testCase.IntsField)
 			if !assert.Nil(t, err, testCase.description) {

@@ -95,6 +95,7 @@ func NewQuery(query string, source, dest reflect.Type) (*Query, error) {
 	if ret.mapper, err = NewMapper(src, unwrapStruct(dest), ret.sel); err != nil {
 		return nil, err
 	}
+
 	ret.walker = NewWalker(ret.node)
 	ret.CompType = ret.mapper.dest
 	if dest == nil {
