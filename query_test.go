@@ -138,6 +138,7 @@ func TestSelector_Select(t *testing.T) {
 			IntsField: "XInts",
 			expect:    `[1,2, 3]`,
 		},
+
 		{
 			description: "query with dest",
 			query:       "SELECT Name, Active FROM `/`",
@@ -307,6 +308,21 @@ func TestSelector_Select(t *testing.T) {
 	}
 ]`,
 		},
+
+		{
+			description: "query with nexted dest ARRAY_AGG all",
+			query:       "SELECT ARRAY_AGG(ID) AS XInts FROM `/Records` ",
+			source: []*Holder{
+				{
+					ID: 123,
+				},
+				{
+					ID: 324,
+				},
+			},
+			IntsField: "XInts",
+			expect:    ``,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -319,7 +335,6 @@ func TestSelector_Select(t *testing.T) {
 		if !assert.Nil(t, err, testCase.description) {
 			continue
 		}
-
 		if testCase.IntsField != "" {
 			asInts, err := transform.AsInts(sel.Type(), testCase.IntsField)
 			if !assert.Nil(t, err, testCase.description) {
