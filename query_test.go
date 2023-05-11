@@ -309,7 +309,7 @@ func TestSelector_Select(t *testing.T) {
 		},
 		{
 			description: "query *",
-			query:       "SELECT * FROM `/Records`",
+			query:       "SELECT * FROM `/Records` LIMIT 1",
 			source: []*Holder{
 				{
 

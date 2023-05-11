@@ -7,6 +7,7 @@ import (
 	sparser "github.com/viant/structql/parser"
 	"github.com/viant/xunsafe"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +17,7 @@ type Query struct {
 	sel       *query.Select
 	source    reflect.Type
 	destSlice *xunsafe.Slice
+	Limit     int
 	node      *Node
 	mapper    *Mapper
 	walker    *Walker
@@ -96,6 +98,9 @@ func NewQuery(query string, source, dest reflect.Type) (*Query, error) {
 		return nil, err
 	}
 
+	if limit := ret.sel.Limit; limit != nil {
+		ret.Limit, _ = strconv.Atoi(limit.Value)
+	}
 	ret.walker = NewWalker(ret.node)
 	ret.CompType = ret.mapper.dest
 	if dest == nil {
