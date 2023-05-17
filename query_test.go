@@ -39,6 +39,7 @@ func TestSelector_Select(t *testing.T) {
 		description string
 		query       string
 		source      interface{}
+		sourceFn    func() interface{}
 		dest        interface{}
 		expect      interface{}
 		IntsField   string
@@ -364,6 +365,10 @@ func TestSelector_Select(t *testing.T) {
 
 	//for _, testCase := range testCases[len(testCases)-1:] {
 	for _, testCase := range testCases {
+		if testCase.source == nil {
+			testCase.source = testCase.sourceFn()
+		}
+
 		sel, err := NewQuery(testCase.query, reflect.TypeOf(testCase.source), reflect.TypeOf(testCase.dest))
 		if !assert.Nil(t, err, testCase.description) {
 			fmt.Printf("err: %v\n", err)

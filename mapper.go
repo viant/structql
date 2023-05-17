@@ -86,6 +86,13 @@ func (f *field) copy(src unsafe.Pointer, dest unsafe.Pointer) {
 		source := f.src.Interface(src)
 		f.dest.SetValue(dest, source)
 		return
+	} else {
+		source := f.src.Interface(src)
+		src = xunsafe.AsPointer(source)
+		if f.dest.Offset > 0 {
+			d := f.dest.Interface(dest)
+			dest = xunsafe.AsPointer(d)
+		}
 	}
 	f.translate(src, dest)
 }
