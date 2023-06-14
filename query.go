@@ -29,6 +29,11 @@ func (s *Query) Type() reflect.Type {
 	return s.destSlice.Type
 }
 
+//StructType returns dest struct type
+func (s *Query) StructType() reflect.Type {
+	return unwrapStruct(s.destSlice.Type)
+}
+
 //Select returns selection result
 func (s *Query) Select(source interface{}) (interface{}, error) {
 	destSlicePtrValue := reflect.New(s.destSlice.Type)
