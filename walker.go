@@ -115,6 +115,9 @@ func (w *Walker) mapNode(ctx *Context, aNode *Node, value interface{}) error {
 				return err
 			}
 		}
+		if sliceLen == 0 && ctx.mapper.aggregate {
+			ctx.Next(nil)
+		}
 	}
 	return nil
 }

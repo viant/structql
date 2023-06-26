@@ -361,6 +361,13 @@ func TestSelector_Select(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			description: "query with dest ARRAY_AGG",
+			query:       "SELECT ARRAY_AGG(ID) AS IDs FROM `/Items`",
+			source:      &Record{},
+			expect:      `[{"IDs":[]}]`,
+		},
 	}
 
 	//for _, testCase := range testCases[len(testCases)-1:] {
