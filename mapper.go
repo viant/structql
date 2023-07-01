@@ -140,7 +140,11 @@ func NewMapper(source reflect.Type, dest reflect.Type, sel *query.Select) (*Mapp
 			if fieldMap.dest != nil {
 				fieldType = fieldMap.dest.Type
 			}
-			destFields = append(destFields, reflect.StructField{Name: fieldName, Type: fieldType, Tag: fieldMap.src.Tag, PkgPath: fieldMap.src.PkgPath()})
+			pkgPath := fieldMap.src.PkgPath()
+			if strings.ToLower(fieldName[:1]) == fieldName[:1] {
+				pkgPath = "autogen"
+			}
+			destFields = append(destFields, reflect.StructField{Name: fieldName, Type: fieldType, Tag: fieldMap.src.Tag, PkgPath: pkgPath})
 			dest = reflect.StructOf(destFields)
 		}
 		if err := mapDestField(dest, item, fieldMap); err != nil {
