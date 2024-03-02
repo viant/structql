@@ -14,10 +14,10 @@ Please refer to [`CHANGELOG.md`](CHANGELOG.md) if you encounter breaking changes
 
 ## Motivation
 
-The goal of this library is to provide access to structured data using SQL.
-The library is designed to  transform golang data structure with SQL.
-Initial version implements only basic SQL functionality. 
-
+The primary aim of this library is to facilitate access to structured data through SQL queries. 
+It is specifically tailored to transform Golang data structures using SQL syntax. 
+The initial release of this library focuses on implementing the foundational features of SQL,
+laying the groundwork for more advanced functionalities in future updates
 
 
 ## Introduction
