@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/viant/sqlparser"
 	"github.com/viant/sqlparser/query"
+	node "github.com/viant/structql/node"
 	sparser "github.com/viant/structql/parser"
 	"github.com/viant/xunsafe"
 	"reflect"
@@ -11,7 +12,7 @@ import (
 	"strings"
 )
 
-//Query represents a selector
+// Query represents a selector
 type Query struct {
 	query     string
 	sel       *query.Select
@@ -22,19 +23,20 @@ type Query struct {
 	mapper    *Mapper
 	walker    *Walker
 	CompType  reflect.Type
+	Binding   *node.Binding
 }
 
-//Type returns dest slice type
+// Type returns dest slice type
 func (s *Query) Type() reflect.Type {
 	return s.destSlice.Type
 }
 
-//StructType returns dest struct type
+// StructType returns dest struct type
 func (s *Query) StructType() reflect.Type {
 	return unwrapStruct(s.destSlice.Type)
 }
 
-//Select returns selection result
+// Select returns selection result
 func (s *Query) Select(source interface{}) (interface{}, error) {
 	destSlicePtrValue := reflect.New(s.destSlice.Type)
 	sourceLen := s.walker.Count(source)
@@ -48,7 +50,7 @@ func (s *Query) Select(source interface{}) (interface{}, error) {
 	return destSlicePtr, nil
 }
 
-//First returns the first selection result
+// First returns the first selection result
 func (s *Query) First(source interface{}) (interface{}, error) {
 	destSlicePtrValue := reflect.New(s.destSlice.Type)
 	sourceLen := s.walker.Count(source)
@@ -80,13 +82,15 @@ func unwrapStruct(p reflect.Type) reflect.Type {
 	return nil
 }
 
-//NewQuery returns a selector
-func NewQuery(query string, source, dest reflect.Type) (*Query, error) {
+// NewQuery returns a selector
+func NewQuery(query string, source, dest reflect.Type, values ...interface{}) (*Query, error) {
 	var err error
 	if unwrapStruct(source) == nil {
 		return nil, fmt.Errorf("invalid source type: %s", source.String())
 	}
-	ret := &Query{query: query, source: source}
+	ret := &Query{query: query, source: source, Binding: &node.Binding{}}
+	value := &node.Values{Values: values, Bindings: ret.Binding}
+
 	if ret.sel, err = sqlparser.ParseQuery(query); err != nil {
 		return nil, fmt.Errorf("failed to parse %w, %v", err, query)
 	}
@@ -95,14 +99,14 @@ func NewQuery(query string, source, dest reflect.Type) (*Query, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid from: %w, %v", err, from)
 	}
-	if ret.node, err = NewNode(source, sel); err != nil {
+
+	if ret.node, err = NewNode(source, sel, value); err != nil {
 		return nil, err
 	}
 	src := unwrapStruct(ret.node.LeafType())
 	if ret.mapper, err = NewMapper(src, unwrapStruct(dest), ret.sel); err != nil {
 		return nil, err
 	}
-
 	if limit := ret.sel.Limit; limit != nil {
 		ret.Limit, _ = strconv.Atoi(limit.Value)
 	}
@@ -118,10 +122,11 @@ func NewQuery(query string, source, dest reflect.Type) (*Query, error) {
 
 	if ret.sel.Qualify != nil {
 		leaf := ret.node.Leaf()
+
 		if leaf.expr != nil {
 			return nil, fmt.Errorf("[] expr and WHERE clause can not be used for the same node")
 		}
-		if leaf.expr, leaf.exprSel, err = compileCriteria("t", ret.sel.Qualify, leaf.ownerType); err != nil {
+		if leaf.expr, leaf.exprSel, err = compileCriteria("t", ret.sel.Qualify, leaf.ownerType, value); err != nil {
 			return nil, err
 		}
 	}

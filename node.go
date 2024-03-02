@@ -20,7 +20,7 @@ const (
 	nodeKindArray   = nodeKind(3)
 )
 
-//Node represents a node
+// Node represents a node
 type Node struct {
 	kind      nodeKind
 	IsLeaf    bool
@@ -33,12 +33,12 @@ type Node struct {
 	exprSel   *exec.Selector
 }
 
-//Type returns node Type
+// Type returns node Type
 func (n *Node) Type() reflect.Type {
 	return n.ownerType
 }
 
-//Leaf returns leaf node
+// Leaf returns leaf node
 func (n *Node) Leaf() *Node {
 	if n.child != nil {
 		return n.child.Leaf()
@@ -46,7 +46,7 @@ func (n *Node) Leaf() *Node {
 	return n
 }
 
-//LeafType returns leaf type
+// LeafType returns leaf type
 func (n *Node) LeafType() reflect.Type {
 	if n.child != nil {
 		return n.child.LeafType()
@@ -54,7 +54,7 @@ func (n *Node) LeafType() reflect.Type {
 	return n.ownerType
 }
 
-//When applied expr or returns true if not defined
+// When applied expr or returns true if not defined
 func (n *Node) When(value interface{}) bool {
 	if n.expr == nil {
 		return true
@@ -66,7 +66,7 @@ func (n *Node) When(value interface{}) bool {
 	return result
 }
 
-//LeafOwnerType returns leaf type
+// LeafOwnerType returns leaf type
 func (n *Node) LeafOwnerType() reflect.Type {
 	if n.child != nil {
 		if n.child.IsLeaf {
@@ -77,8 +77,8 @@ func (n *Node) LeafOwnerType() reflect.Type {
 	return n.ownerType
 }
 
-//NewNode creates a node
-func NewNode(ownerType reflect.Type, sel *node.Selector) (*Node, error) {
+// NewNode creates a node
+func NewNode(ownerType reflect.Type, sel *node.Selector, values *node.Values) (*Node, error) {
 	var err error
 	aNode := &Node{selector: sel}
 	aNode.ownerType = ownerType
@@ -87,13 +87,14 @@ func NewNode(ownerType reflect.Type, sel *node.Selector) (*Node, error) {
 	if aNode.ownerType.Kind() == reflect.Ptr {
 		rawType = aNode.ownerType.Elem()
 	}
+
 	aNode.IsLeaf = sel.Child == nil
 	switch rawType.Kind() {
 	case reflect.Slice:
 		aNode.kind = nodeKindArray
 		aNode.IsLeaf = false
 		aNode.xSlice = xunsafe.NewSlice(rawType)
-		if aNode.child, err = NewNode(aNode.ownerType.Elem(), sel); err != nil {
+		if aNode.child, err = NewNode(aNode.ownerType.Elem(), sel, values); err != nil {
 			return nil, err
 		}
 	case reflect.Struct:
@@ -102,14 +103,12 @@ func NewNode(ownerType reflect.Type, sel *node.Selector) (*Node, error) {
 			if aNode.xField = xunsafe.FieldByName(rawType, sel.Name); aNode.xField == nil {
 				return nil, fmt.Errorf("failed to lookup field: '%v' on %v", sel.Name, rawType.Name())
 			}
-			if aNode.child, err = NewNode(aNode.xField.Type, sel.Child); err != nil {
+			if aNode.child, err = NewNode(aNode.xField.Type, sel.Child, values); err != nil {
 				return nil, err
 			}
 		}
 		if sel.Criteria != nil {
-			if aNode.expr, aNode.exprSel, err = compileCriteria(sel.Holder, sel.Criteria, aNode.ownerType); err != nil {
-				return nil, err
-			}
+			aNode.expr, aNode.exprSel, err = compileCriteria(sel.Holder, sel.Criteria, aNode.ownerType, values)
 		}
 
 	default:
@@ -121,10 +120,14 @@ func NewNode(ownerType reflect.Type, sel *node.Selector) (*Node, error) {
 	return aNode, err
 }
 
-func compileCriteria(holder string, criteria snode.Node, ownerType reflect.Type) (*expr.Bool, *exec.Selector, error) {
+func compileCriteria(holder string, criteria snode.Node, ownerType reflect.Type, values *node.Values) (*expr.Bool, *exec.Selector, error) {
 	var err error
-	goExpr := parser.AsBinaryGoExpr(holder+".", criteria)
 	scope := igo.NewScope()
+	goExpr, err := parser.AsBinaryGoExpr(holder+".", criteria, node.LookupFieldType(holder, ownerType), values)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to compile criteria: %w", err)
+	}
+
 	exprSel, err := scope.DefineVariable(holder, ownerType)
 	if err != nil {
 		return nil, nil, err

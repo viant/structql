@@ -32,13 +32,13 @@ type (
 	}
 )
 
-//Map maps source to appender
+// Map maps source to appender
 func (m *Mapper) Map(walker *Walker, source interface{}, appender *xunsafe.Appender) error {
 	ctx := NewContext(m, appender, m.aggregate)
 	return walker.mapNode(ctx, walker.root, source)
 }
 
-//MapStruct maps struct
+// MapStruct maps struct
 func (m *Mapper) MapStruct(srcItemPtr unsafe.Pointer, destItemPtr unsafe.Pointer) error {
 	if srcItemPtr == nil || destItemPtr == nil {
 		return nil
@@ -71,7 +71,7 @@ func (m *Mapper) setType(dest reflect.Type) {
 	m.xType = xunsafe.NewType(dest)
 }
 
-//Map map fields
+// Map map fields
 func (f *field) Map(src, dest unsafe.Pointer) {
 	f.copy(src, dest)
 }
@@ -101,7 +101,7 @@ func (f *field) translate(source, dest unsafe.Pointer) {
 	f.cp(source, dest)
 }
 
-//NewMapper creates a mapper
+// NewMapper creates a mapper
 func NewMapper(source reflect.Type, dest reflect.Type, sel *query.Select) (*Mapper, error) {
 	ret := &Mapper{
 		fields: make([]field, 0, len(sel.List)),

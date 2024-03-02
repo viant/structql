@@ -6,11 +6,10 @@ import (
 	"github.com/viant/sqlparser"
 	"github.com/viant/sqlparser/expr"
 	"github.com/viant/structql/node"
-	"github.com/yuin/gopher-lua/parse"
 	"strings"
 )
 
-//ParseSelector parses selector
+// ParseSelector parses selector
 func ParseSelector(expr string) (*node.Selector, error) {
 	root := &node.Selector{}
 	expr = strings.Trim(expr, "`")
@@ -49,7 +48,7 @@ outer:
 				selector.Child = child
 				selector = child
 			}
-		case parse.EOF:
+		case parsly.EOF:
 			break outer
 		default:
 			return cursor.NewError(identifierMatcher, selectorSeparatorMatcher)
@@ -58,7 +57,7 @@ outer:
 	return nil
 }
 
-//ParseQualify parses SQL crtieria
+// ParseQualify parses SQL crtieria
 func ParseQualify(path string, cond []byte, offset int) (*expr.Qualify, error) {
 	cursor := parsly.NewCursor(path, cond, offset)
 	qualify := &expr.Qualify{}

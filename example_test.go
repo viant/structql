@@ -1,8 +1,8 @@
 package structql_test
 
 import (
+	"fmt"
 	"github.com/viant/structql"
-	"github.com/viant/toolbox"
 	"log"
 	"reflect"
 	"time"
@@ -125,5 +125,5 @@ func ExampleQuery_Select() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	toolbox.Dump(result)
+	fmt.Printf("%v\n", result)
 }

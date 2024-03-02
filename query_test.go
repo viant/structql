@@ -1,11 +1,9 @@
 package structql
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/viant/assertly"
 	"github.com/viant/structql/transform"
-	"github.com/viant/toolbox"
 	"reflect"
 	"testing"
 )
@@ -378,7 +376,6 @@ func TestSelector_Select(t *testing.T) {
 
 		sel, err := NewQuery(testCase.query, reflect.TypeOf(testCase.source), reflect.TypeOf(testCase.dest))
 		if !assert.Nil(t, err, testCase.description) {
-			fmt.Printf("err: %v\n", err)
 			continue
 		}
 		dest, err := sel.Select(testCase.source)
@@ -395,7 +392,7 @@ func TestSelector_Select(t *testing.T) {
 		}
 
 		if !assertly.AssertValues(t, testCase.expect, dest, testCase.description) {
-			toolbox.DumpIndent(dest, true)
+			continue
 		}
 	}
 }
