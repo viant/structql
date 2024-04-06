@@ -59,6 +59,12 @@ func (f *field) translateIntToInts(src unsafe.Pointer, dest unsafe.Pointer) {
 	*destSlice = append(*destSlice, srcValue)
 }
 
+func (f *field) translateStringToStrings(src unsafe.Pointer, dest unsafe.Pointer) {
+	srcValue := *(*string)(src)
+	destSlice := (*[]string)(dest)
+	*destSlice = append(*destSlice, srcValue)
+}
+
 func (f *field) computeCastedCopy() error {
 	f.mapKind = mapKindTranslate
 	srcKind := f.src.Kind()
@@ -76,6 +82,8 @@ func (f *field) computeCastedCopy() error {
 		switch f.dest.Type.Elem().Kind() {
 		case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
 			f.cp = f.translateIntToInts
+		case reflect.String:
+			f.cp = f.translateStringToStrings
 		}
 
 	case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
@@ -103,7 +111,7 @@ func (f *field) computeCastedCopy() error {
 
 	}
 	if f.cp == nil {
-		return fmt.Errorf("unsupported field translatrion %s -> %s", f.src.Type.String(), f.dest.Type.String())
+		return fmt.Errorf("unsupported structology field translation %s -> %s", f.src.Type.String(), f.dest.Type.String())
 	}
 	return nil
 }
