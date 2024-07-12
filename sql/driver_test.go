@@ -10,7 +10,7 @@ import (
 func Test_ExecContext(t *testing.T) {
 
 	type Foo struct {
-		Id   int
+		Id   int `aql:"id,key=true"`
 		Name string
 	}
 	var testCase = []struct {
@@ -32,6 +32,9 @@ func Test_ExecContext(t *testing.T) {
 			sql:         "REGISTER TYPE Foo AS ?",
 			params:      []interface{}{Foo{}},
 		},
+		/*
+			SELECT PK.Bins.* FROM Foo$MapBin Bins WHERE PK = 'value'  AND KEY = 'key1'
+		*/
 	}
 
 	for _, tc := range testCase {
