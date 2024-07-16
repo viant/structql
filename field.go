@@ -65,6 +65,15 @@ func (f *field) translateStringToStrings(src unsafe.Pointer, dest unsafe.Pointer
 	*destSlice = append(*destSlice, srcValue)
 }
 
+func (f *field) translateIntPtrToIntsPtr(src unsafe.Pointer, dest unsafe.Pointer) {
+	srcValue := (*int)(src)
+	if srcValue == nil {
+		return
+	}
+	destSlice := (*[]*int)(dest)
+	*destSlice = append(*destSlice, srcValue)
+}
+
 func (f *field) computeCastedCopy() error {
 	f.mapKind = mapKindTranslate
 	srcKind := f.src.Kind()
@@ -74,7 +83,8 @@ func (f *field) computeCastedCopy() error {
 		srcKind = f.src.Elem().Kind()
 	}
 	isDestPtr := destKind == reflect.Ptr
-	if isSourcePtr {
+
+	if isDestPtr {
 		destKind = f.dest.Elem().Kind()
 	}
 	switch destKind {
@@ -84,6 +94,11 @@ func (f *field) computeCastedCopy() error {
 			f.cp = f.translateIntToInts
 		case reflect.String:
 			f.cp = f.translateStringToStrings
+		case reflect.Ptr:
+			switch f.dest.Type.Elem().Elem().Kind() {
+			case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
+				f.cp = f.translateIntPtrToIntsPtr
+			}
 		}
 
 	case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:

@@ -23,7 +23,7 @@ func Test_ExecContext(t *testing.T) {
 		{
 			description: "register inlined type",
 			dsn:         "structql:///testdata/",
-			sql:         "REGISTER TYPE Bar AS struct{id int; name string}", //TODO is this struct usable when all fields are private?
+			sql:         "REGISTER TYPE Bar AS struct{id int; name string}",
 		},
 		{
 			description: "register named type",
