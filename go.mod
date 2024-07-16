@@ -8,7 +8,7 @@ require (
 	github.com/viant/assertly v0.9.1-0.20220620174148-bab013f93a60
 	github.com/viant/igo v0.2.0
 	github.com/viant/parsly v0.3.3-0.20240228194022-a61fc21f83e1
-	github.com/viant/sqlparser v0.6.0
+	github.com/viant/sqlparser v0.7.1-0.20240716201054-e9acebbe9320
 	github.com/viant/x v0.2.0
 	github.com/viant/xreflect v0.6.2-0.20240129222322-972307391f16
 	github.com/viant/xunsafe v0.9.2

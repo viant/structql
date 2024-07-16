@@ -20,16 +20,26 @@ func Test_ExecContext(t *testing.T) {
 		params      []interface{}
 		expect      interface{}
 	}{
-
 		{
 			description: "register inlined type",
 			dsn:         "structql:///testdata/",
-			sql:         "REGISTER TYPE Bar AS struct{id int; name string}",
+			sql:         "REGISTER TYPE Bar AS struct{id int; name string}", //TODO is this struct usable when all fields are private?
 		},
 		{
 			description: "register named type",
 			dsn:         "structql:///testdata/",
 			sql:         "REGISTER TYPE Foo AS ?",
+			params:      []interface{}{Foo{}},
+		},
+		{
+			description: "register inlined type",
+			dsn:         "structql:///testdata/",
+			sql:         "REGISTER GLOBAL TYPE Bar AS struct{id int; name string}",
+		},
+		{
+			description: "register named type",
+			dsn:         "structql:///testdata/",
+			sql:         "REGISTER GLOBAL TYPE Foo AS ?",
 			params:      []interface{}{Foo{}},
 		},
 	}
@@ -64,7 +74,7 @@ func Test_QueryContext(t *testing.T) {
 		scanner     func(r *sql.Rows) (interface{}, error)
 	}{
 		{
-			description: "register named type",
+			description: "select all rows with register named type",
 			dsn:         "structql:///testdata/",
 			execSQL:     "REGISTER TYPE Foo AS ?",
 			execParams:  []interface{}{Foo{}},
@@ -81,7 +91,24 @@ func Test_QueryContext(t *testing.T) {
 			},
 		},
 		{
-			description: "register named type",
+			description: "select all rows with register global named type",
+			dsn:         "structql:///testdata/",
+			execSQL:     "REGISTER GLOBAL TYPE Foo AS ?",
+			execParams:  []interface{}{Foo{}},
+			querySQL:    "SELECT * FROM Foo",
+			queryParams: []interface{}{},
+			scanner: func(r *sql.Rows) (interface{}, error) {
+				foo := Foo{}
+				err := r.Scan(&foo.Id, &foo.Name)
+				return &foo, err
+			},
+			expect: []interface{}{
+				&Foo{Id: 1, Name: "name1"},
+				&Foo{Id: 2, Name: "name2"},
+			},
+		},
+		{
+			description: "select 1 row by id with register named type",
 			dsn:         "structql:///testdata/",
 			execSQL:     "REGISTER TYPE Foo AS ?",
 			execParams:  []interface{}{Foo{}},
@@ -97,7 +124,7 @@ func Test_QueryContext(t *testing.T) {
 			},
 		},
 		{
-			description: "register named type",
+			description: "select 2 rows by id with in operator and register named type",
 			dsn:         "structql:///testdata/",
 			execSQL:     "REGISTER TYPE Foo AS ?",
 			execParams:  []interface{}{Foo{}},
@@ -113,8 +140,39 @@ func Test_QueryContext(t *testing.T) {
 				&Foo{Id: 2, Name: "name2"},
 			},
 		},
+		{
+			description: "select 1 row by id with register inlined type",
+			dsn:         "structql:///testdata/",
+			execSQL:     "REGISTER TYPE Foo AS struct{Id int; Name string}",
+			execParams:  []interface{}{},
+			querySQL:    "SELECT * FROM Foo WHERE id=2",
+			queryParams: []interface{}{},
+			scanner: func(r *sql.Rows) (interface{}, error) {
+				foo := Foo{}
+				err := r.Scan(&foo.Id, &foo.Name)
+				return &foo, err
+			},
+			expect: []interface{}{
+				&Foo{Id: 2, Name: "name2"},
+			},
+		},
+		{
+			description: "select 1 row by id with global register inlined type",
+			dsn:         "structql:///testdata/",
+			execSQL:     "REGISTER GLOBAL TYPE Foo AS struct{Id int; Name string}",
+			execParams:  []interface{}{},
+			querySQL:    "SELECT * FROM Foo WHERE id=2",
+			queryParams: []interface{}{},
+			scanner: func(r *sql.Rows) (interface{}, error) {
+				foo := Foo{}
+				err := r.Scan(&foo.Id, &foo.Name)
+				return &foo, err
+			},
+			expect: []interface{}{
+				&Foo{Id: 2, Name: "name2"},
+			},
+		},
 	}
-
 	for _, tc := range testCase {
 		t.Run(tc.description, func(t *testing.T) {
 			db, err := sql.Open("structql", tc.dsn)
