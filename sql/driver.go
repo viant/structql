@@ -6,6 +6,8 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"github.com/viant/afs"
+	"github.com/viant/afs/file"
+	_ "github.com/viant/afs/mem"
 	"github.com/viant/x"
 	"os"
 	"path"
@@ -18,6 +20,8 @@ const (
 
 func init() {
 	sql.Register(scheme, &Driver{})
+	fs := afs.New()
+	_ = fs.Upload(context.Background(), "mem://localhost/structql/single.json", file.DefaultFileOsMode, strings.NewReader(`{}`))
 }
 
 // Driver is exported to make the driver directly accessible.

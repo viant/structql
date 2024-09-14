@@ -60,8 +60,12 @@ func (r *Rows) Columns() []string {
 	}
 	for _, column := range r.query.List {
 		switch actual := column.Expr.(type) {
-		case expr.Ident:
+		case *expr.Ident:
 			result = append(result, actual.Name)
+		case *expr.Literal:
+			result = append(result, column.Alias)
+		case *expr.Call:
+			result = append(result, column.Alias)
 		default:
 			return nil
 		}
@@ -83,6 +87,9 @@ func (r *Rows) Close() error {
 func (r *Rows) Next(dest []driver.Value) error {
 	if r.resourceIndex >= len(r.resources) {
 		return io.EOF
+	}
+	if len(dest) != len(r.mapper.byPos)+len(r.mapper.values) {
+		return fmt.Errorf("expected %v, but had %v", len(r.mapper.byPos)+len(r.mapper.values), len(dest))
 	}
 	res := r.resource()
 	has, err := res.Next()
@@ -115,7 +122,6 @@ func (r *Rows) Next(dest []driver.Value) error {
 	}
 
 	ptr := xunsafe.AsPointer(r.record)
-
 	if r.criteria != nil {
 		if err := r.criteria.State.SetValue("r", r.record); err != nil {
 			return err
@@ -124,9 +130,13 @@ func (r *Rows) Next(dest []driver.Value) error {
 			return r.Next(dest)
 		}
 	}
-
 	for i, aField := range r.mapper.byPos {
 		dest[i] = aField.Value(ptr)
+	}
+	if len(r.mapper.values) > 0 {
+		for i, v := range r.mapper.values {
+			dest[i] = v
+		}
 	}
 	return nil
 }

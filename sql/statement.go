@@ -58,7 +58,60 @@ func (s *Statement) prepareSelect(SQL string) error {
 		return err
 	}
 
+	rawExpr, ok := s.query.From.X.(*expr.Raw)
+	if ok {
+		s.remapSubQuery(rawExpr)
+	}
+
 	return nil
+}
+
+func (s *Statement) remapSubQuery(rawExpr *expr.Raw) {
+	subQuery := rawExpr.X.(*query.Select)
+	if s.query.List.IsStarExpr() {
+		s.query.List = subQuery.List
+	} else {
+		var columMap = make(map[string]*query.Item)
+		for _, item := range subQuery.List {
+			name := itemName(item)
+			columMap[name] = item
+		}
+		list := make(query.List, 0)
+		for i := range s.query.List {
+			item := s.query.List[i]
+			name := itemName(item)
+			if col, ok := columMap[name]; ok {
+				list = append(list, col)
+			} else {
+				list = append(list, item)
+			}
+		}
+		s.query.List = list
+	}
+	s.query.From = subQuery.From
+	if s.query.Qualify == nil {
+		s.query.Qualify = subQuery.Qualify
+	}
+	if s.query.Limit == nil {
+		s.query.Limit = subQuery.Limit
+	}
+	if s.query.GroupBy == nil {
+		s.query.GroupBy = subQuery.GroupBy
+	}
+	if s.query.Qualify == nil {
+		s.query.Qualify = subQuery.Qualify
+	}
+}
+
+func itemName(item *query.Item) string {
+	name := item.Alias
+	if name == "" {
+		name = sqlparser.Stringify(item.Expr)
+		if idx := strings.Index(name, "."); idx != -1 {
+			name = name[idx+1:]
+		}
+	}
+	return strings.ToLower(name)
 }
 
 func (s *Statement) handleRegisterType(args []driver.NamedValue) (driver.Result, error) {
@@ -80,7 +133,7 @@ func (s *Statement) handleRegisterType(args []driver.NamedValue) (driver.Result,
 		}
 	}
 	aType := x.NewType(rType, x.WithName(register.Name))
-	aType.Package = ""
+	aType.PkgPath = ""
 	if register.Global {
 		Register(aType)
 	}
@@ -147,8 +200,8 @@ func (s *Statement) Close() error {
 
 func (s *Statement) checkQueryParameters() {
 	//this is very basic parameter detection, need to be improved
-	query := strings.ToLower(s.SQL)
-	count := checkQueryParameters(query)
+	aQuery := strings.ToLower(s.SQL)
+	count := checkQueryParameters(aQuery)
 	s.numInput = count
 }
 
@@ -165,13 +218,13 @@ func (s *Statement) executeSelect(ctx context.Context, name string, resources re
 	if s.query.Qualify != nil && s.query.Qualify.X != nil {
 		criteria = sqlparser.Stringify(s.query.Qualify.X)
 	}
-	aMapper, err := newMapper(s.recordType, s.query.List)
+
+	aMapper, err := newMapper(s.recordType, s.query.List, &args)
 	if err != nil {
 		return nil, err
 	}
 
 	row := reflect.New(s.recordType).Interface()
-
 	rows := &Rows{
 		zeroRecord: unsafe.Slice((*byte)(xunsafe.AsPointer(row)), s.recordType.Size()),
 		record:     row,
@@ -190,7 +243,53 @@ func (s *Statement) executeSelect(ctx context.Context, name string, resources re
 }
 
 func (s *Statement) autodetectType(ctx context.Context, res resources) (reflect.Type, error) {
-	return nil, fmt.Errorf("autodetectType not yet implemented")
+	if s.query.List.IsStarExpr() {
+		return nil, fmt.Errorf("autodetectType not implemented for *")
+	}
+	var fields = make([]reflect.StructField, 0)
+	for _, item := range s.query.List {
+		var field reflect.StructField
+		switch actual := item.Expr.(type) {
+		case *expr.Literal:
+			switch actual.Kind {
+			case "string":
+				field = reflect.StructField{Name: item.Alias, Type: reflect.TypeOf("")}
+			case "int":
+				field = reflect.StructField{Name: item.Alias, Type: reflect.TypeOf(0)}
+			case "float":
+				field = reflect.StructField{Name: item.Alias, Type: reflect.TypeOf(0.0)}
+			}
+		case *expr.Call:
+			name := strings.ToLower(sqlparser.Stringify(actual.X))
+			switch name {
+			case "cast":
+				raw := strings.ToLower(actual.Raw)
+				if idx := strings.LastIndex(raw, " as "); idx != -1 {
+					raw = strings.TrimSpace(raw[idx+4 : len(raw)-1])
+				}
+				switch raw {
+				case "char":
+					field = reflect.StructField{Name: item.Alias, Type: reflect.TypeOf("")}
+				case "int":
+					field = reflect.StructField{Name: item.Alias, Type: reflect.TypeOf(0)}
+				case "bool":
+					field = reflect.StructField{Name: item.Alias, Type: reflect.TypeOf(true)}
+				case "float":
+					field = reflect.StructField{Name: item.Alias, Type: reflect.TypeOf(0.0)}
+				default:
+					return nil, fmt.Errorf("unsupported cast type: %v", raw)
+				}
+			case "now", "current_timestamp":
+				field = reflect.StructField{Name: item.Alias, Type: reflect.TypeOf(time.Time{})}
+			default:
+				return nil, fmt.Errorf("unsupported function: %v", name)
+			}
+		default:
+			return nil, fmt.Errorf("unsupported type: %T", actual)
+		}
+		fields = append(fields, field)
+	}
+	return reflect.StructOf(fields), nil
 }
 
 func checkQueryParameters(query string) int {

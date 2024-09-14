@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func Test_ExecContext(t *testing.T) {
@@ -22,23 +23,23 @@ func Test_ExecContext(t *testing.T) {
 	}{
 		{
 			description: "register inlined type",
-			dsn:         "structql:///testdata/",
+			dsn:         "file:///testdata/",
 			sql:         "REGISTER TYPE Bar AS struct{id int; name string}",
 		},
 		{
 			description: "register named type",
-			dsn:         "structql:///testdata/",
+			dsn:         "file:///testdata/",
 			sql:         "REGISTER TYPE Foo AS ?",
 			params:      []interface{}{Foo{}},
 		},
 		{
 			description: "register inlined type",
-			dsn:         "structql:///testdata/",
+			dsn:         "file:///testdata/",
 			sql:         "REGISTER GLOBAL TYPE Bar AS struct{id int; name string}",
 		},
 		{
 			description: "register named type",
-			dsn:         "structql:///testdata/",
+			dsn:         "file:///testdata/",
 			sql:         "REGISTER GLOBAL TYPE Foo AS ?",
 			params:      []interface{}{Foo{}},
 		},
@@ -59,6 +60,11 @@ func Test_ExecContext(t *testing.T) {
 
 func Test_QueryContext(t *testing.T) {
 
+	type Single struct {
+		Id    int
+		Name  string
+		Value int
+	}
 	type Foo struct {
 		Id   int
 		Name string
@@ -73,9 +79,44 @@ func Test_QueryContext(t *testing.T) {
 		expect      interface{}
 		scanner     func(r *sql.Rows) (interface{}, error)
 	}{
+
+		{
+			description: "single row pseudo",
+			dsn:         "mem://localhost/structql/",
+			querySQL:    "SELECT ID, NAME, VALUE, TS  FROM (SELECT 1 AS ID, CAST(? AS CHAR) AS NAME, CAST(? AS int) AS VALUE, NOW() TS  FROM single LIMIT 1)",
+			queryParams: []interface{}{"name1", 10},
+			scanner: func(r *sql.Rows) (interface{}, error) {
+				foo := Single{}
+				ts := time.Time{}
+				err := r.Scan(&foo.Id, &foo.Name, &foo.Value, &ts)
+				return &foo, err
+			},
+			expect: []interface{}{
+				&Single{Id: 1, Name: "name1", Value: 10},
+			},
+		},
+
 		{
 			description: "select all rows with register named type",
-			dsn:         "structql:///testdata/",
+			dsn:         "file:///testdata/",
+			execSQL:     "REGISTER TYPE Foo AS ?",
+			execParams:  []interface{}{Foo{}},
+			querySQL:    "SELECT * FROM Foo",
+			queryParams: []interface{}{},
+			scanner: func(r *sql.Rows) (interface{}, error) {
+				foo := Foo{}
+				err := r.Scan(&foo.Id, &foo.Name)
+				return &foo, err
+			},
+			expect: []interface{}{
+				&Foo{Id: 1, Name: "name1"},
+				&Foo{Id: 2, Name: "name2"},
+			},
+		},
+
+		{
+			description: "select all rows with register named type",
+			dsn:         "file:///testdata/",
 			execSQL:     "REGISTER TYPE Foo AS ?",
 			execParams:  []interface{}{Foo{}},
 			querySQL:    "SELECT * FROM Foo",
@@ -92,7 +133,7 @@ func Test_QueryContext(t *testing.T) {
 		},
 		{
 			description: "select all rows with register global named type",
-			dsn:         "structql:///testdata/",
+			dsn:         "file:///testdata/",
 			execSQL:     "REGISTER GLOBAL TYPE Foo AS ?",
 			execParams:  []interface{}{Foo{}},
 			querySQL:    "SELECT * FROM Foo",
@@ -109,7 +150,7 @@ func Test_QueryContext(t *testing.T) {
 		},
 		{
 			description: "select 1 row by id with register named type",
-			dsn:         "structql:///testdata/",
+			dsn:         "file:///testdata/",
 			execSQL:     "REGISTER TYPE Foo AS ?",
 			execParams:  []interface{}{Foo{}},
 			querySQL:    "SELECT * FROM Foo WHERE id=2",
@@ -125,7 +166,7 @@ func Test_QueryContext(t *testing.T) {
 		},
 		{
 			description: "select 2 rows by id with in operator and register named type",
-			dsn:         "structql:///testdata/",
+			dsn:         "file:///testdata/",
 			execSQL:     "REGISTER TYPE Foo AS ?",
 			execParams:  []interface{}{Foo{}},
 			querySQL:    "SELECT * FROM Foo WHERE id IN(?, ?, ?)",
@@ -142,7 +183,7 @@ func Test_QueryContext(t *testing.T) {
 		},
 		{
 			description: "select 1 row by id with register inlined type",
-			dsn:         "structql:///testdata/",
+			dsn:         "file:///testdata/",
 			execSQL:     "REGISTER TYPE Foo AS struct{Id int; Name string}",
 			execParams:  []interface{}{},
 			querySQL:    "SELECT * FROM Foo WHERE id=2",
@@ -158,7 +199,7 @@ func Test_QueryContext(t *testing.T) {
 		},
 		{
 			description: "select 1 row by id with global register inlined type",
-			dsn:         "structql:///testdata/",
+			dsn:         "file:///testdata/",
 			execSQL:     "REGISTER GLOBAL TYPE Foo AS struct{Id int; Name string}",
 			execParams:  []interface{}{},
 			querySQL:    "SELECT * FROM Foo WHERE id=2",
@@ -173,6 +214,8 @@ func Test_QueryContext(t *testing.T) {
 			},
 		},
 	}
+
+	//testCase = testCase[:1]
 	for _, tc := range testCase {
 		t.Run(tc.description, func(t *testing.T) {
 			db, err := sql.Open("structql", tc.dsn)
@@ -191,6 +234,7 @@ func Test_QueryContext(t *testing.T) {
 			var items []interface{}
 			for rows.Next() {
 				item, err := tc.scanner(rows)
+
 				assert.Nil(t, err, tc.description)
 				items = append(items, item)
 			}

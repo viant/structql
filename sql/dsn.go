@@ -1,8 +1,12 @@
 package sql
 
 import (
+	"context"
 	"fmt"
+	"github.com/viant/afs"
 	"net/url"
+	"os"
+	"path"
 	"strings"
 )
 
@@ -18,15 +22,23 @@ func ParseDSN(dsn string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid dsn: %v", err)
 	}
-	if URL.Scheme != scheme {
-		return nil, fmt.Errorf("invalid dsn scheme, expected %v, but had: %v", scheme, URL.Scheme)
-	}
 	cfg := &Config{
 		Values: URL.Query(),
 	}
-	host := URL.Host
-	cfg.BaseURL = host + URL.Path
-	cfg.BaseURL = strings.Replace(cfg.BaseURL, "$", "://", 1)
+
+	if URL.Scheme == "file" && URL.Path != "" {
+		fs := afs.New()
+		cwd, _ := os.Getwd()
+		candidate := path.Join(cwd, URL.Path[1:])
+		if ok, _ := fs.Exists(context.Background(), candidate); ok {
+			URL.Path = candidate
+		}
+	}
+
+	cfg.BaseURL = URL.Scheme + "://" + URL.Host + URL.Path
+	if idx := strings.Index(dsn, "?"); idx != -1 {
+		cfg.BaseURL = dsn[:idx]
+	}
 	if len(cfg.Values) > 0 {
 		var unsupported []string
 		for k := range cfg.Values {
