@@ -89,8 +89,8 @@ func (r *Rows) Next(dest []driver.Value) error {
 	if r.resourceIndex >= len(r.resources) || r.isFalsePredicate {
 		return io.EOF
 	}
-	if len(dest) != len(r.mapper.byPos)+len(r.mapper.values) {
-		return fmt.Errorf("expected %v, but had %v", len(r.mapper.byPos)+len(r.mapper.values), len(dest))
+	if len(dest) != len(r.mapper.byPos) {
+		return fmt.Errorf("expected %v, but had %v", len(r.mapper.byPos), len(dest))
 	}
 	res := r.resource()
 	has, err := res.Next()

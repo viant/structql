@@ -131,7 +131,20 @@ func (m *mapper) handleCast(actual *expr.Call, args *[]driver.NamedValue, item *
 			if len(*args) == 0 {
 				return fmt.Errorf("missing cast argument %v", item.Alias)
 			}
-			m.values[i] = (*args)[0].Value
+
+			switch (*args)[0].Value.(type) {
+			case string:
+				m.values[i] = (*args)[0].Value.(string)
+			case time.Time:
+				m.values[i] = (*args)[0].Value.(time.Time).Format(time.RFC3339)
+			case *time.Time:
+				if ts := (*args)[0].Value; ts != nil {
+					m.values[i] = ts.(*time.Time).Format(time.RFC3339)
+				}
+
+			default:
+				m.values[i] = (*args)[0].Value
+			}
 			*args = (*args)[1:]
 		}
 	case "int":
@@ -176,6 +189,38 @@ func (m *mapper) handleCast(actual *expr.Call, args *[]driver.NamedValue, item *
 				return fmt.Errorf("%v unsupported int argument type: %T", item.Alias, (*args)[0].Value)
 			}
 			m.values[i] = boolValue
+			*args = (*args)[1:]
+		} else {
+			return fmt.Errorf("%v unsupported cast argument type: %T", item.Alias, actual.Args[0])
+		}
+	case "time", "datetime", "timestamp":
+		if _, ok := actual.Args[0].(*expr.Placeholder); ok {
+			if len(*args) == 0 {
+				return fmt.Errorf("missing cast argument %v", item.Alias)
+			}
+
+			var tValue *time.Time
+			switch (*args)[0].Value.(type) {
+			case time.Time:
+				t := (*args)[0].Value.(time.Time)
+				tValue = &t
+			case *time.Time:
+				tValue = (*args)[0].Value.(*time.Time)
+
+			case string:
+				t, err := time.Parse(time.RFC3339, (*args)[0].Value.(string))
+				if err != nil {
+					return fmt.Errorf("%v invalid time: %v %w", item.Alias, (*args)[0].Value, err)
+				}
+				tValue = &t
+			default:
+				return fmt.Errorf("%v unsupported int argument type: %T", item.Alias, (*args)[0].Value)
+			}
+			if tValue == nil {
+				m.values[i] = nil
+			} else {
+				m.values[i] = *tValue
+			}
 			*args = (*args)[1:]
 		} else {
 			return fmt.Errorf("%v unsupported cast argument type: %T", item.Alias, actual.Args[0])

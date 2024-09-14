@@ -271,6 +271,8 @@ func (s *Statement) autodetectType(ctx context.Context, res resources) (reflect.
 					raw = strings.TrimSpace(raw[idx+4 : len(raw)-1])
 				}
 				switch raw {
+				case "time", "datetime", "timestamp":
+					field = reflect.StructField{Name: item.Alias, Type: reflect.TypeOf(time.Time{})}
 				case "char":
 					field = reflect.StructField{Name: item.Alias, Type: reflect.TypeOf("")}
 				case "int":
