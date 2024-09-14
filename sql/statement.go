@@ -215,8 +215,10 @@ func (s *Statement) executeSelect(ctx context.Context, name string, resources re
 		}
 	}
 	criteria := ""
+	falsePredicate := false
 	if s.query.Qualify != nil && s.query.Qualify.X != nil {
 		criteria = sqlparser.Stringify(s.query.Qualify.X)
+		falsePredicate = isFalsePredicate(s.query.Qualify)
 	}
 
 	aMapper, err := newMapper(s.recordType, s.query.List, &args)
@@ -226,12 +228,13 @@ func (s *Statement) executeSelect(ctx context.Context, name string, resources re
 
 	row := reflect.New(s.recordType).Interface()
 	rows := &Rows{
-		zeroRecord: unsafe.Slice((*byte)(xunsafe.AsPointer(row)), s.recordType.Size()),
-		record:     row,
-		recordType: s.recordType,
-		resources:  resources,
-		mapper:     aMapper,
-		query:      s.query,
+		zeroRecord:       unsafe.Slice((*byte)(xunsafe.AsPointer(row)), s.recordType.Size()),
+		record:           row,
+		recordType:       s.recordType,
+		isFalsePredicate: falsePredicate,
+		resources:        resources,
+		mapper:           aMapper,
+		query:            s.query,
 	}
 
 	if criteria != "" {
@@ -309,4 +312,20 @@ func checkQueryParameters(query string) int {
 		}
 	}
 	return count
+}
+
+func isFalsePredicate(qualify *expr.Qualify) bool {
+	binary, ok := qualify.X.(*expr.Binary)
+	if !ok {
+		return false
+	}
+	if binary.Op == "=" {
+		if leftLiteral, ok := binary.X.(*expr.Literal); ok {
+			if rightLiteral, ok := binary.Y.(*expr.Literal); ok {
+				return !(leftLiteral.Value == rightLiteral.Value)
+
+			}
+		}
+	}
+	return false
 }

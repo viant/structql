@@ -21,16 +21,17 @@ import (
 
 // Rows represents rows driver
 type Rows struct {
-	criteria       *iexpr.Bool
-	scope          *igo.Scope
-	recordSelector *exec.Selector
-	recordType     reflect.Type
-	mapper         *mapper
-	query          *query.Select
-	resources      []*resource
-	resourceIndex  int
-	zeroRecord     []byte
-	record         interface{}
+	criteria         *iexpr.Bool
+	scope            *igo.Scope
+	recordSelector   *exec.Selector
+	recordType       reflect.Type
+	mapper           *mapper
+	query            *query.Select
+	resources        []*resource
+	resourceIndex    int
+	zeroRecord       []byte
+	record           interface{}
+	isFalsePredicate bool
 }
 
 func (r *Rows) nextResource() bool {
@@ -85,7 +86,7 @@ func (r *Rows) Close() error {
 
 // Next moves to next row
 func (r *Rows) Next(dest []driver.Value) error {
-	if r.resourceIndex >= len(r.resources) {
+	if r.resourceIndex >= len(r.resources) || r.isFalsePredicate {
 		return io.EOF
 	}
 	if len(dest) != len(r.mapper.byPos)+len(r.mapper.values) {

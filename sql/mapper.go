@@ -39,6 +39,7 @@ func (m *mapper) lookup(name string) *xunsafe.Field {
 
 func newMapper(recordType reflect.Type, list query.List, args *[]driver.NamedValue) (*mapper, error) {
 	m := &mapper{byPos: make(map[int]*field), byName: make(map[string]*field), values: make(map[int]interface{})}
+
 	if list.IsStarExpr() {
 		for i := 0; i < recordType.NumField(); i++ {
 			aField := recordType.Field(i)
@@ -80,8 +81,14 @@ func newMapper(recordType reflect.Type, list query.List, args *[]driver.NamedVal
 			if err := m.updatedLiteralExpr(actual, i); err != nil {
 				return nil, err
 			}
-
+			fuzzName := item.Alias
+			pos, ok := fieldPos[fuzzName]
+			if !ok {
+				return nil, fmt.Errorf("unable to match column: %v in type: %s", item.Alias, recordType.Name())
+			}
+			m.byPos[i] = &field{index: pos, Field: xunsafe.NewField(recordType.Field(pos))}
 		case *expr.Call:
+
 			name := strings.ToLower(sqlparser.Stringify(actual.X))
 			switch name {
 			case "cast":
@@ -95,6 +102,12 @@ func newMapper(recordType reflect.Type, list query.List, args *[]driver.NamedVal
 			default:
 				return nil, fmt.Errorf("unsupported function: %v", name)
 			}
+			fuzzName := item.Alias
+			pos, ok := fieldPos[fuzzName]
+			if !ok {
+				return nil, fmt.Errorf("unable to match column: %v in type: %s", item.Alias, recordType.Name())
+			}
+			m.byPos[i] = &field{index: pos, Field: xunsafe.NewField(recordType.Field(pos))}
 
 		default:
 			return nil, fmt.Errorf("unsupported ast type: %T", actual)
