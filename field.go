@@ -65,6 +65,15 @@ func (f *field) translateStringToStrings(src unsafe.Pointer, dest unsafe.Pointer
 	*destSlice = append(*destSlice, srcValue)
 }
 
+func (f *field) translateStringPtrToStringsPtr(src unsafe.Pointer, dest unsafe.Pointer) {
+	srcValue := (*string)(src)
+	if srcValue == nil {
+		return
+	}
+	destSlice := (*[]*string)(dest)
+	*destSlice = append(*destSlice, srcValue)
+}
+
 func (f *field) translateIntPtrToIntsPtr(src unsafe.Pointer, dest unsafe.Pointer) {
 	srcValue := (*int)(src)
 	if srcValue == nil {
@@ -98,6 +107,8 @@ func (f *field) computeCastedCopy() error {
 			switch f.dest.Type.Elem().Elem().Kind() {
 			case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
 				f.cp = f.translateIntPtrToIntsPtr
+			case reflect.String:
+				f.cp = f.translateStringPtrToStringsPtr
 			}
 		}
 

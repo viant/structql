@@ -18,6 +18,7 @@ func TestSelector_Select(t *testing.T) {
 	type Record struct {
 		ID       int
 		Name     string
+		Ptr      *string
 		Active   bool
 		Comments string
 		Items    []*Item
@@ -32,6 +33,7 @@ func TestSelector_Select(t *testing.T) {
 		Name   string
 		Active bool
 	}
+	var ptr = "test1"
 
 	var testCases = []struct {
 		description string
@@ -42,6 +44,61 @@ func TestSelector_Select(t *testing.T) {
 		expect      interface{}
 		IntsField   string
 	}{
+
+		{
+			description: "query with dest ARRAY_AGG",
+			query:       "SELECT ARRAY_AGG(Name) AS IDs FROM `/` WHERE Active = true",
+			source: []*Record{
+				{
+					ID:       1,
+					Name:     "name 1",
+					Active:   true,
+					Comments: "comments 1",
+				},
+				{
+					ID:       2,
+					Name:     "name 1",
+					Active:   false,
+					Comments: "comments 2",
+				},
+				{
+					ID:       3,
+					Name:     "name 1",
+					Active:   true,
+					Comments: "comments 3",
+				},
+			},
+			expect: `[{"IDs":["name 1"]}]`,
+		},
+
+		{
+			description: "query with dest ARRAY_AGG",
+			query:       "SELECT ARRAY_AGG(Ptr) AS IDs FROM `/` WHERE Active = true",
+			source: []*Record{
+				{
+					ID:       1,
+					Name:     "name 1",
+					Ptr:      &ptr,
+					Active:   true,
+					Comments: "comments 1",
+				},
+				{
+					ID:       2,
+					Name:     "name 1",
+					Ptr:      &ptr,
+					Active:   false,
+					Comments: "comments 2",
+				},
+				{
+					ID:       3,
+					Name:     "name 1",
+					Active:   true,
+					Ptr:      &ptr,
+					Comments: "comments 3",
+				},
+			},
+			expect: `[{"IDs":["test1"]}]`,
+		},
 
 		{
 			description: "query with criteria dynamic dest nested",
