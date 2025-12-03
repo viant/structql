@@ -2,13 +2,14 @@ package structql
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+	"unsafe"
+
 	"github.com/viant/sqlparser"
 	"github.com/viant/sqlparser/expr"
 	"github.com/viant/sqlparser/query"
 	"github.com/viant/xunsafe"
-	"reflect"
-	"strings"
-	"unsafe"
 )
 
 type mapKind int
@@ -134,7 +135,9 @@ func NewMapper(source reflect.Type, dest reflect.Type, sel *query.Select) (*Mapp
 				tag := string(fieldMap.src.Tag)
 				//TODO detect case format and replace accordingly
 				tag = strings.ReplaceAll(tag, fieldMap.src.Name, item.Alias)
-				fieldMap.src.Tag = reflect.StructTag(tag)
+				if !fieldMap.aggregate {
+					fieldMap.src.Tag = reflect.StructTag(tag)
+				}
 			}
 			fieldType := fieldMap.src.Type
 			if fieldMap.dest != nil {
