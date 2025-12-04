@@ -135,10 +135,14 @@ func NewMapper(source reflect.Type, dest reflect.Type, sel *query.Select) (*Mapp
 				tag := string(fieldMap.src.Tag)
 				//TODO detect case format and replace accordingly
 				tag = strings.ReplaceAll(tag, fieldMap.src.Name, item.Alias)
-				if !fieldMap.aggregate {
-					fieldMap.src.Tag = reflect.StructTag(tag)
-				}
+				fieldMap.src.Tag = reflect.StructTag(tag)
 			}
+			tag := reflect.StructTag(fieldMap.src.Tag)
+
+			if fieldMap.aggregate {
+				tag = ""
+			}
+
 			fieldType := fieldMap.src.Type
 			if fieldMap.dest != nil {
 				fieldType = fieldMap.dest.Type
@@ -147,7 +151,7 @@ func NewMapper(source reflect.Type, dest reflect.Type, sel *query.Select) (*Mapp
 			if strings.ToLower(fieldName[:1]) == fieldName[:1] {
 				pkgPath = "autogen"
 			}
-			destFields = append(destFields, reflect.StructField{Name: fieldName, Type: fieldType, Tag: fieldMap.src.Tag, PkgPath: pkgPath})
+			destFields = append(destFields, reflect.StructField{Name: fieldName, Type: fieldType, Tag: tag, PkgPath: pkgPath})
 			dest = reflect.StructOf(destFields)
 		}
 		if err := mapDestField(dest, item, fieldMap); err != nil {
